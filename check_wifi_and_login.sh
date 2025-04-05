@@ -1,45 +1,57 @@
 #!/bin/bash
 
-# -------------------------------------------------------------
-# WiFi Auto Login Bash Script for Ubuntu
-# -------------------------------------------------------------
-# This script is designed to be executed every minute via cron.
-# It checks if the system is connected to a specific WiFi network.
-# If connected but no internet access is detected, it triggers a
-# Python script to automatically log in via a captive portal.
-# -------------------------------------------------------------
+# -------------------------
+# CONFIGURATION SECTION
+# -------------------------
 
-# === STEP 1: Identify the current connected WiFi network (SSID) ===
-# We use 'nmcli' to get the active WiFi SSID.
-# NOTE: Make sure your system has 'nmcli' (NetworkManager CLI) installed.
+# Name of the WiFi network to check
+WIFI_SSID="ccomtlGuest"
 
-CURRENT_SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2)
-
-# === STEP 2: Change this to the name of your target WiFi network ===
-TARGET_SSID="ccomtlGuest"
-
-# Check if we are connected to the correct WiFi network
-if [ "$CURRENT_SSID" != "$TARGET_SSID" ]; then
-    echo "[$(date)] Not connected to $TARGET_SSID, exiting."
-    exit 0
-fi
-
-# === STEP 3: Check for internet access by pinging a reliable IP ===
-# We use Google's public DNS server (8.8.8.8).
-# Ping once (-c 1) and timeout quickly (-W 1).
-
-ping -q -c 1 -W 1 8.8.8.8 > /dev/null
-
-if [ $? -eq 0 ]; then
-    echo "[$(date)] Internet access already available. No action needed."
-    exit 0
-fi
-
-# === STEP 4: Call the Python script to perform the captive portal login ===
-# CHANGE THIS PATH to where your auto_login.py script is located.
-#
-# PYTHON_SCRIPT_PATH="/path/to/your/auto_login.py"
-
+# Path to your Python auto-login script
 PYTHON_SCRIPT_PATH="/home/grou/workspace/wifi-auto-login/auto_login.py"
 
-/usr/bin/python3 "$PYTHON_SCRIPT_PATH"14                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+# Path to the log file
+LOG_FILE="/home/grou/workspace/wifi-auto-login/wifi_auto_login.log"
+
+# Max lines to keep in the log file
+MAX_LOG_LINES=200
+
+# -------------------------
+# FUNCTIONAL SECTION
+# -------------------------
+
+# Check if currently connected to the desired WiFi network
+CURRENT_SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2)
+
+# Timestamp for log entries
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Function to log messages
+log_message() {
+    echo "[$TIMESTAMP] $1" >> "$LOG_FILE"
+}
+
+# If connected to the desired SSID
+if [ "$CURRENT_SSID" == "$WIFI_SSID" ]; then
+    # Check if we have internet access by pinging Google DNS
+    if ping -q -c 1 -W 2 8.8.8.8 > /dev/null; then
+        log_message "Connected to $WIFI_SSID and internet is working. No action needed."
+    else
+        log_message "Connected to $WIFI_SSID but no internet. Running login script..."
+        python3 "$PYTHON_SCRIPT_PATH"
+        if [ $? -eq 0 ]; then
+            log_message "Login script ran successfully."
+        else
+            log_message "Login script failed to run properly."
+        fi
+    fi
+else
+    log_message "Not connected to $WIFI_SSID. Current SSID: $CURRENT_SSID"
+fi
+
+# -------------------------
+# LOG MAINTENANCE SECTION
+# -------------------------
+
+# Trim log file to last $MAX_LOG_LINES lines to avoid log bloat
+tail -n "$MAX_LOG_LINES" "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
