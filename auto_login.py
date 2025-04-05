@@ -1,47 +1,40 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 import time
 
-# Set up headless Chrome
+# Configure headless Firefox
 options = Options()
 options.add_argument("--headless")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--disable-gpu")
-options.add_argument("--window-size=1920x1080")
-
-driver = webdriver.Chrome(options=options)
 
 try:
-    # Step 1: Trigger captive portal
-    driver.get("http://neverssl.com")
-    time.sleep(5)  # Wait to ensure redirection completes
+    driver = webdriver.Firefox(options=options)
 
-    # Step 2: Find and click the "I accept the terms" checkbox
-    checkbox = driver.find_element(By.ID, "ID_formc96db8bd_weblogin_visitor_accept_terms")
-    checkbox.click()
-    time.sleep(1)
+    # Open the captive portal login page
+    driver.get("http://neverssl.com")  # This triggers captive portals to redirect
+    time.sleep(3)  # Wait for redirect and page to load
 
-    # Step 3: Wait for submit button to become enabled
-    submit_button = driver.find_element(By.ID, "ID_formc96db8bd_weblogin_submit")
-    
-    # We need to wait until it's no longer disabled
-    attempts = 0
-    while submit_button.get_attribute("disabled") and attempts < 10:
+    try:
+        # Find and click the terms acceptance checkbox
+        checkbox = driver.find_element("id", "ID_formc96db8bd_weblogin_visitor_accept_terms")
+        checkbox.click()
+
+        # Wait for the login button to become enabled (it may depend on JS)
         time.sleep(1)
-        submit_button = driver.find_element(By.ID, "ID_formc96db8bd_weblogin_submit")
-        attempts += 1
 
-    if submit_button.get_attribute("disabled"):
-        raise Exception("Login button is still disabled after checking the box.")
+        # Find and click the login button
+        login_button = driver.find_element("id", "ID_formc96db8bd_weblogin_submit")
+        login_button.click()
 
-    # Step 4: Click the submit button
-    submit_button.click()
-    print("[INFO] Successfully logged in through captive portal.")
+        print("[SUCCESS] Login form submitted.")
+    except NoSuchElementException as e:
+        print(f"[ERROR] Login failed: {e}")
 
-except Exception as e:
-    print(f"[ERROR] Login failed: {e}")
+except WebDriverException as e:
+    print(f"[FATAL] Could not launch Firefox WebDriver: {e}")
 
 finally:
-    driver.quit()
+    try:
+        driver.quit()
+    except:
+        pass
