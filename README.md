@@ -1,129 +1,94 @@
-# WiFi Auto-Login Script (Ubuntu)
+# WiFi Auto-Login System for Captive Portals
 
-This project allows your Ubuntu machine to automatically log into a WiFi network that uses a captive portal (web-based login screen), like the network `ccomtlGuest`. Once you're connected, the script checks for internet access and performs an automatic login if needed.
-
----
-
-## 🔧 Tools Used
-- **Bash**: Used for network detection and automation logic.
-- **Python + Selenium**: Automates the captive portal interaction (accepts checkbox, clicks login).
-- **Cron**: Schedules the automation to run every minute.
+This project enables a Raspberry Pi or Ubuntu-based system to automatically log in to a WiFi captive portal (e.g., `ccomtlGuest`) without any user interaction.
 
 ---
 
-## 📁 Folder Structure
-```
-wifi-auto-login/
-│
-├── check_wifi_and_login.sh       # Main bash script run by cron
-├── auto_login.py                 # Python Selenium script for portal login
-├── login_page.html               # Sample captive portal page (optional)
-├── logs/
-│   └── wifi_auto_login.log       # Rotating logs of connection attempts
-└── README.md                     # This file
-```
+## Features
+
+- Automatically detects when connected to the specified WiFi SSID.
+- Checks for internet access.
+- If connected but no internet, triggers a Python script to accept the captive portal terms and log in.
+- Keeps a rotating log of the last 200 status messages.
+- Cron job runs silently every minute.
 
 ---
 
-## 🧠 How It Works
+## Requirements
 
-1. **The Cron Job** runs every minute.
-2. It checks if you're connected to the target WiFi network (`ccomtlGuest`).
-3. It then pings `8.8.8.8` to check for internet access.
-4. If there is no internet, it launches the `auto_login.py` script.
-5. The Python script uses Selenium to:
-   - Open the captive portal page.
-   - Click the "I accept" checkbox.
-   - Click the "Log In" button.
-6. All actions are logged, but the log is rotated to prevent bloating.
+- Python 3
+- `nmcli` (usually installed on Ubuntu)
+- `ping`
+- Raspberry Pi or any Ubuntu-based Linux system
+- NetworkManager (used by `nmcli`)
 
 ---
 
-## ✅ Setup Instructions
+## Setup Instructions
 
-### 1. Clone the Repo & Enter the Directory
+### 1. Clone the repository
+
 ```bash
-git clone git@github.com:yourusername/wifi-auto-login.git
+git clone https://github.com/YOUR_USERNAME/wifi-auto-login.git
 cd wifi-auto-login
 ```
 
-### 2. Install Required Packages
+### 2. Modify the configuration
 
-Ensure `selenium` and `chromium-driver` are installed:
-```bash
-sudo apt update
-sudo apt install python3-pip chromium-chromedriver -y
-pip3 install selenium
-```
+Edit `check_wifi_and_login.sh`:
 
-> 💡 You may also need to install `cron` if it's not already installed:
-```bash
-sudo apt install cron
-```
+- Set the correct WiFi SSID:
+  ```bash
+  TARGET_SSID="ccomtlGuest"
+  ```
+- Set the full path to your `auto_login.py` script:
+  ```bash
+  PYTHON_SCRIPT_PATH="/home/grou/workspace/wifi-auto-login/auto_login.py"
+  ```
 
----
-
-### 3. Make the Bash Script Executable
+Make the script executable:
 
 ```bash
 chmod +x check_wifi_and_login.sh
 ```
 
----
+### 3. Set up the cron job
 
-### 4. Set Up Cron Job
+Open the crontab editor:
 
-Open the cron editor:
 ```bash
 crontab -e
 ```
 
-Add the following line at the end (update the path as needed):
+Add the following line to run the script every minute:
+
 ```cron
-* * * * * /home/yourusername/path/to/wifi-auto-login/check_wifi_and_login.sh
+* * * * * /home/grou/workspace/wifi-auto-login/check_wifi_and_login.sh
 ```
 
-This runs the script every minute.
+Make sure the path is correct.
 
----
+### 4. Verify it's working
 
-### 5. (Optional) Check Cron Logs
+You can view the log output with:
 
-If something isn't working, you can inspect cron logs:
 ```bash
-grep CRON /var/log/syslog
+tail -f /home/grou/workspace/wifi-auto-login/wifi_login.log
+```
+
+It will show messages like:
+
+```
+[2025-04-05 17:18:01] Connected to ccomtlGuest but no internet. Running login script...
+[2025-04-05 17:18:01] Login script ran successfully.
 ```
 
 ---
 
-## 🪵 Logging
+## License
 
-Logs are written to `logs/wifi_auto_login.log`. The script will:
-- Write a new entry **only when a login is attempted** or an error occurs.
-- **Automatically rotate** the log file when it exceeds 1MB:
-  - Old logs are saved as `wifi_auto_login.log.1`, `.2`, etc.
-  - Keeps up to 5 log files (configurable).
+MIT License. Feel free to modify and reuse.
 
-You don’t need to clean the logs manually.
+## Contributions
 
----
-
-## 🛠️ Debugging Tips
-
-- If cron reports `Permission denied`, run:
-  ```bash
-  chmod +x check_wifi_and_login.sh
-  ```
-- Ensure that the full path to the Python script and Chrome driver are correct.
-- Always test the Python script independently first:
-  ```bash
-  python3 auto_login.py
-  ```
-
----
-
-## 💬 Future Improvements
-
-- Detect and support more networks
-- GUI setup wizard for easy onboarding
-- Optional notification if login fails repeatedly
+Pull requests welcome if you improve the robustness or add support for new types of portals!

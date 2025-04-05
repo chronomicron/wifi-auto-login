@@ -1,57 +1,51 @@
 #!/bin/bash
 
-# -------------------------
-# CONFIGURATION SECTION
-# -------------------------
+# check_wifi_and_login.sh
+# ------------------------
+# This script is meant to be run by a cron job every minute.
+# It checks if the device is connected to a specific WiFi network
+# and whether it has internet access. If it's connected but no internet,
+# it launches the captive portal auto-login Python script.
 
-# Name of the WiFi network to check
-WIFI_SSID="ccomtlGuest"
+# --- CONFIGURATION SECTION ---
 
-# Path to your Python auto-login script
+# Name of the WiFi network that has the captive portal
+TARGET_SSID="ccomtlGuest"
+
+# Path to the Python script that handles the captive portal login
 PYTHON_SCRIPT_PATH="/home/grou/workspace/wifi-auto-login/auto_login.py"
 
-# Path to the log file
-LOG_FILE="/home/grou/workspace/wifi-auto-login/wifi_auto_login.log"
+# Path to the log file to write script status messages
+LOG_FILE="/home/grou/workspace/wifi-auto-login/wifi_login.log"
 
-# Max lines to keep in the log file
-MAX_LOG_LINES=200
+# --- END CONFIGURATION SECTION ---
 
-# -------------------------
-# FUNCTIONAL SECTION
-# -------------------------
-
-# Check if currently connected to the desired WiFi network
-CURRENT_SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2)
-
-# Timestamp for log entries
-TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-
-# Function to log messages
-log_message() {
-    echo "[$TIMESTAMP] $1" >> "$LOG_FILE"
+# Function to get current connected WiFi SSID
+get_current_ssid() {
+    nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2
 }
 
-# If connected to the desired SSID
-if [ "$CURRENT_SSID" == "$WIFI_SSID" ]; then
-    # Check if we have internet access by pinging Google DNS
-    if ping -q -c 1 -W 2 8.8.8.8 > /dev/null; then
-        log_message "Connected to $WIFI_SSID and internet is working. No action needed."
+# Function to check if internet is available
+has_internet() {
+    ping -q -w 5 -c 1 8.8.8.8 > /dev/null 2>&1
+}
+
+# Main execution starts here
+{
+    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+    CURRENT_SSID=$(get_current_ssid)
+
+    if [[ "$CURRENT_SSID" != "$TARGET_SSID" ]]; then
+        echo "[$TIMESTAMP] Not connected to $TARGET_SSID. Current SSID: $CURRENT_SSID"
     else
-        log_message "Connected to $WIFI_SSID but no internet. Running login script..."
-        python3 "$PYTHON_SCRIPT_PATH"
-        if [ $? -eq 0 ]; then
-            log_message "Login script ran successfully."
+        if has_internet; then
+            echo "[$TIMESTAMP] Connected to $TARGET_SSID and internet is working. No action needed."
         else
-            log_message "Login script failed to run properly."
+            echo "[$TIMESTAMP] Connected to $TARGET_SSID but no internet. Running login script..."
+            python3 "$PYTHON_SCRIPT_PATH" && echo "[$TIMESTAMP] Login script ran successfully." || echo "[$TIMESTAMP] Login script failed."
         fi
     fi
-else
-    log_message "Not connected to $WIFI_SSID. Current SSID: $CURRENT_SSID"
-fi
 
-# -------------------------
-# LOG MAINTENANCE SECTION
-# -------------------------
-
-# Trim log file to last $MAX_LOG_LINES lines to avoid log bloat
-tail -n "$MAX_LOG_LINES" "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+    # Keep only the last 200 lines of the log file to prevent bloat
+} >> "$LOG_FILE" 2>&1
+tail -n 200 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
