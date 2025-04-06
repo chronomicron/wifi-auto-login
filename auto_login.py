@@ -1,40 +1,36 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.webdriver.common.by import By
 import time
 
-# Configure headless Firefox
+# Setup headless Firefox
 options = Options()
-options.add_argument("--headless")
+options.headless = True
 
 try:
+    print("[INFO] Starting Firefox in headless mode...")
     driver = webdriver.Firefox(options=options)
 
-    # Open the captive portal login page
-    driver.get("http://neverssl.com")  # This triggers captive portals to redirect
-    time.sleep(3)  # Wait for redirect and page to load
+    print("[INFO] Opening captive portal login page...")
+    driver.get("http://neverssl.com")  # Trigger redirect to captive portal
 
-    try:
-        # Find and click the terms acceptance checkbox
-        checkbox = driver.find_element("id", "ID_formc96db8bd_weblogin_visitor_accept_terms")
-        checkbox.click()
+    time.sleep(3)  # Allow time for redirect
 
-        # Wait for the login button to become enabled (it may depend on JS)
-        time.sleep(1)
+    # Tick the checkbox for accepting terms
+    checkbox = driver.find_element(By.ID, "ID_formc96db8bd_weblogin_visitor_accept_terms")
+    checkbox.click()
+    print("[INFO] Checked the terms checkbox.")
 
-        # Find and click the login button
-        login_button = driver.find_element("id", "ID_formc96db8bd_weblogin_submit")
-        login_button.click()
+    # Click the "Log In" button
+    login_button = driver.find_element(By.ID, "ID_formc96db8bd_weblogin_submit")
+    login_button.click()
+    print("[INFO] Clicked the login button.")
 
-        print("[SUCCESS] Login form submitted.")
-    except NoSuchElementException as e:
-        print(f"[ERROR] Login failed: {e}")
+    time.sleep(2)  # Allow some time for the login to complete
+    print("[INFO] Login should be complete.")
 
-except WebDriverException as e:
-    print(f"[FATAL] Could not launch Firefox WebDriver: {e}")
+except Exception as e:
+    print(f"[ERROR] Login failed: {e}")
 
 finally:
-    try:
-        driver.quit()
-    except:
-        pass
+    driver.quit()
