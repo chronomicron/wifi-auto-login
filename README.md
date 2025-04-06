@@ -32,32 +32,20 @@ pip install selenium
 3. Geckodriver (for Firefox automation)
 Install using apt:
 
-bash
-Copy
-Edit
 sudo apt install firefox-geckodriver
 Or manually download from:
 https://github.com/mozilla/geckodriver/releases
 
 🔧 Installation & Setup
 1. Clone the Repository
-bash
-Copy
-Edit
 git clone https://github.com/chronomicron/wifi-auto-login.git
 cd wifi-auto-login
 2. Configure WiFi SSID and Paths
 Edit the file check_wifi_and_login.sh:
 
-bash
-Copy
-Edit
 nano check_wifi_and_login.sh
 Update these variables at the top:
 
-bash
-Copy
-Edit
 WIFI_NAME="ccomtlGuest"
 LOG_FILE="/home/YOUR_USERNAME/wifi-auto-login/wifi_login.log"
 PYTHON_SCRIPT_PATH="/home/YOUR_USERNAME/wifi-auto-login/auto_login.py"
@@ -65,22 +53,13 @@ Replace /home/YOUR_USERNAME/ with your actual path.
 
 Make the script executable:
 
-bash
-Copy
-Edit
 chmod +x check_wifi_and_login.sh
 🕒 Setup Cron Job
 Edit your crontab:
 
-bash
-Copy
-Edit
 crontab -e
 Add the following line to run the script every minute:
 
-bash
-Copy
-Edit
 * * * * * /home/YOUR_USERNAME/wifi-auto-login/check_wifi_and_login.sh
 Replace the path as needed. Save and exit the editor.
 
@@ -110,9 +89,6 @@ Keeps the last 200 lines only.
 
 Sample log output:
 
-text
-Copy
-Edit
 [2025-04-05 17:14:27] Not connected to ccomtlGuest. Current SSID: Meguro
 [2025-04-05 17:18:01] Connected to ccomtlGuest but no internet. Running login script...
 [2025-04-05 17:18:01] Login form submitted.
@@ -126,9 +102,6 @@ The system should detect the lack of internet and run the auto-login script.
 
 Check your log output:
 
-bash
-Copy
-Edit
 tail -f wifi_login.log
 💡 Tips
 Use a Raspberry Pi with an external USB WiFi adapter for better compatibility.
